@@ -6,8 +6,16 @@ hello('GET', []) ->
     {ok,[{timestamp, TimeStamp}]}.
 
 pull('GET', [LastTimeStamp]) ->
-    {ok, Timestamp, Lines} = boss_mq:pull("tail-channel", list_to_integer(LastTimeStamp)),
-    io:format("got ~p~n",[Lines]),
-    {json, [{timestamp, Timestamp}, {lines, Lines}]}.
+    case boss_mq:pull("tail-channel", list_to_integer(LastTimeStamp)) of
+	{ok, Timestamp, Lines} ->
+	    {json, [{timestamp, Timestamp}, {lines, Lines}]};
+	{error, Reason} ->
+	    io:format("error: ~p~n",[Reason]),
+	    {output,Reason};
+	Other ->
+	    io:format("unexpected: ~p~n",[Other])
+    end.
+
+
 
 

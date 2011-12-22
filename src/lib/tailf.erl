@@ -2,7 +2,7 @@
 -export([init/1,start/1,start/0,stop/0]).
 
 start() ->
-    start(fun info_display/1).
+    start(fun enqueue/1).
 start(Callback) ->
     spawn_link(?MODULE,init,[Callback]).
 
@@ -15,14 +15,17 @@ init(Callback) ->
     Port = open_port({spawn, Cmd}, [stderr_to_stdout, {line, 1024}, exit_status]),
     loop(Port,Callback).
 
-info_display(Content) ->
+info_display(Bin) ->
+    Content = iolist_to_binary(Bin),
     io:format("[info] ~s~n",[Content]).
+
+enqueue(Bin) ->
+    boss_mq:push("tail-channel",binary_to_list(Bin)).
 
 loop(Port,Callback) ->
     receive
         {Port, {data, {_EolFlag, Bin}}} ->
-            Content = iolist_to_binary(Bin),
-	    Callback(Content),
+	    Callback(Bin),
             loop(Port,Callback);
         {Port, {exit_status, Status}} ->
             {ok, Status};
